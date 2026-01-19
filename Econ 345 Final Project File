@@ -1,0 +1,101 @@
+clear
+cd "C:\Users\EckermanGM10\Documents\Data"
+import excel using "345 Project Data", sheet("Sheet1") firstrow clear
+
+*save as a Stata file
+save "Data", replace
+
+*opening a stata file
+use "Data", clear
+
+sum
+
+gen lnFederalFundsRate = ln(FederalFundsRate)
+
+kdensity FederalFundsRate,normal
+kdensity lnFederalFundsRate,normal
+
+reg FederalFundsRate YRExpInflation E F UnemploymentRate HSGraduate25UnemploymentRat CollegeGraduate25Unemploymen, robust
+
+reg lnFederalFundsRate YRExpInflation E F UnemploymentRate HSGraduate25UnemploymentRat CollegeGraduate25Unemploymen, robust
+
+reg FederalFundsRate YRExpInflation UnemploymentRate
+
+tsset t
+gen Lag1YRExpInflation=L1.YRExpInflation
+gen Lag2YRExpInflation=L2.YRExpInflation
+gen Lag3YRExpInflation=L3.YRExpInflation
+gen Lag4YRExpInflation=L4.YRExpInflation
+gen Lag5YRExpInflation=L5.YRExpInflation
+gen Lag6YRExpInflation=L6.YRExpInflation
+
+gen Lag1Unemployment=L1.Unemployment
+gen Lag2Unemployment=L2.Unemployment
+gen Lag3Unemployment=L3.Unemployment
+gen Lag4Unemployment=L4.Unemployment
+gen Lag5Unemployment=L5.Unemployment
+gen Lag6Unemployment=L6.Unemployment
+
+reg FederalFundsRate Lag1YRExpInflation Lag2YRExpInflation Lag3YRExpInflation Lag4YRExpInflation Lag5YRExpInflation Lag6YRExpInflation
+
+reg FederalFundsRate Lag1Unemployment Lag2Unemployment Lag3Unemployment Lag4Unemployment Lag5Unemployment Lag6Unemployment
+
+reg FederalFundsRate t observation_date YRExpInflation-BraveButersKelleyRealGDP, robust
+
+gen recessiondummy=.
+replace recessiondummy=0 if t != 40-48
+replace recessiondummy=1 if inrange(t,121,139)
+
+reg lnFederalFundsRate t-BraveButersKelleyRealGDP recessiondummy, robust
+
+reg FederalFundsRate t observation_date YRExpInflation-BraveButersKelleyRealGDP recessiondummy, robust
+predict double eeee, residuals
+tsset t
+ac eeee, lags(100)
+
+gen e4Lag1=L1.eeee
+reg eeee e4Lag1, noconstant
+
+gen e4Lag2=L2.eeee
+reg eeee e4Lag1 e4Lag2, noconstant
+test (e4Lag1=e4Lag2=0)
+
+gen e4Lag3=L3.eeee
+reg eeee e4Lag1 e4Lag2 e4Lag3, noconstant
+test (e4Lag1=e4Lag2=e4Lag3=0)
+
+reg FederalFundsRate t observation_date YRExpInflation-BraveButersKelleyRealGDP recessiondummy, robust
+wntestq eeee
+estat dwatson
+
+reg FederalFundsRate L1.FederalFundsRate t observation_date YRExpInflation-BraveButersKelleyRealGDP recessiondummy, robust
+
+reg FederalFundsRate L1.FederalFundsRate L2.FederalFundsRate t observation_date YRExpInflation-BraveButersKelleyRealGDP recessiondummy, robust
+predict double eeee1, residuals
+wntestq eeee1
+
+reg FederalFundsRate L1.FederalFundsRate L2.FederalFundsRate t observation_date YRExpInflation-BraveButersKelleyRealGDP recessiondummy
+estat durbinalt
+
+prais FederalFundsRate L1.FederalFundsRate L2.FederalFundsRate t observation_date YRExpInflation-BraveButersKelleyRealGDP recessiondummy
+
+sum
+
+reg lnFederalFundsRate t observation_date YRExpInflation-BraveButersKelleyRealGDP recessiondummy, robust
+
+gen InflxUnemp = YRExpInflation*UnemploymentRate
+
+reg FederalFundsRate t observation_date YRExpInflation-BraveButersKelleyRealGDP recessiondummy InflxUnemp, robust
+
+reg FederalFundsRate L1.FederalFundsRate L2.FederalFundsRate t observation_date YRExpInflation-BraveButersKelleyRealGDP recessiondummy InflxUnemp, robust
+
+gen lnUSDebt = ln(USMarketDebt)
+
+*Main Regressions
+reg FederalFundsRate t YRExpInflation-BraveButersKelleyRealGDP recessiondummy, robust
+
+reg lnFederalFundsRate t YRExpInflation-BraveButersKelleyRealGDP recessiondummy, robust
+
+reg FederalFundsRate L1.FederalFundsRate L2.FederalFundsRate t YRExpInflation-BraveButersKelleyRealGDP recessiondummy lnUSDebt, robust
+
+reg FederalFundsRate t YRExpInflation-BraveButersKelleyRealGDP recessiondummy InflxUnemp, robust
